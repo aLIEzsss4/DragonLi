@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { Moralis } from "moralis";
 import { useWeb3ExecuteFunction } from "react-moralis";
 //import { abi as contractAbi } from "../constants/abis/Token.json";
-import { abi as charContractAbi } from "../constants/abis/Character.json";
+// import { abi as charContractAbi } from "../constants/abis/Character.json";
+import charContractAbi from "../constants/abis/abi.json";
 import {
   Alert,
   AlertIcon,
@@ -25,6 +26,8 @@ import { Formik, Field, Form } from "formik";
 const { default: axios } = require("axios");
 
 const CHAR_CONTRACT = process.env.REACT_APP_CHAR_CONTRACT;
+const API_URL = process.env.REACT_APP_API_URL;
+const API_KEY = process.env.REACT_APP_API_KEY; 
 
 export default function Hashtro({ isServerInfo }) {
   // web3 functionality
@@ -42,6 +45,10 @@ export default function Hashtro({ isServerInfo }) {
     id: null,
   });
 
+  const [allInfo,setAllInfo]=useState()
+
+  const [imgSrc, setImgSrc] = useState("");
+
   const form = useRef();
 
   useEffect(() => {
@@ -57,6 +64,90 @@ export default function Hashtro({ isServerInfo }) {
     // updates the hashtro's state
     setHashtro(dataFetched);
   }, [dataFetched]); // <-- the above updates on this changing
+
+
+  const updateMetadataFn=async ({
+    level,
+    hp,
+    damage
+  })=>{
+
+     let paddedHex = (
+        "0000000000000000000000000000000000000000000000000000000000000000" + allInfo.id
+      ).slice(-64);
+
+    let dateTime = Date.now();
+
+    console.log(allInfo,'allInfo',level)
+
+    let nftMetadata = {
+      //dna: dna.join(""),
+     
+      ...allInfo,
+      // name: _values.name ? _values.name : `#${_id}`,
+      // image: _path,
+      // id: _id,
+      // date: dateTime,
+      attributes:[
+        // ...dataFetched.attributes,
+        {
+          "trait_type": "damage", 
+          "value": damage,
+           "display_type": "boost_number", 
+        }, 
+         {
+          "trait_type": "hp", 
+          "value": hp,
+           "display_type": "boost_number", 
+        }, 
+         {
+          "trait_type": "level", 
+          "value":level ,
+        }, 
+        {
+          "trait_type": "updateTime", 
+          "value": dateTime,
+           "display_type": "date", 
+        }
+      ]
+    };
+
+    let base64String = Buffer.from(JSON.stringify(nftMetadata)).toString(
+        "base64",
+      );
+
+    return await axios
+              .post(API_URL, [{
+                path: `metadata/${paddedHex}.json`,
+                content: base64String,
+              }], {
+                headers: {
+                  "X-API-Key": API_KEY,
+                  "content-type": "application/json",
+                  accept: "application/json",
+                },
+              })
+              .then((res) => {
+                // successfully uploaded metadata to IPFS
+                // let metaCID = res.data[0].path.split("/")[4];
+                console.log("updateMetadataFn FILE PATHS:", res.data);
+
+                return res.data?.[0]?.path
+
+                // step 3. transfer reference to metadata on-chain and to db (optional)
+                // on-chain: interface with smart contract; mint uploaded asset as NFT
+                // mintCharacter(metaCID, id, _formValues); // <-- '+1' or 'amount' to be minted, currently minting one at a time
+                // moralis db: save ref to IPFS metadata file
+                //saveToDb(metaCID, imageCID, _totalFiles);
+              })
+              .catch((err) => {
+                // setLoading(false);
+                // setError(true);
+                // setErrorMessage(err);
+                console.log(err);
+              });
+
+  }
   /*
   // interact with Hastro token (NFT)
   async function feedData(_id) {
@@ -189,6 +280,10 @@ export default function Hashtro({ isServerInfo }) {
             <Text>Rarity: {hashtroData.attributes.rarity}</Text>
           </Box>
           <Box>
+            {/* <Text>Rarity: {hashtroData.attributes.rarity}</Text> */}
+            <img src={imgSrc} />
+          </Box>
+          <Box>
             <Text>
               Metadata:{" "}
               <Link href={hashtroData.attributes.tokenURI} isExternal>
@@ -219,18 +314,23 @@ export default function Hashtro({ isServerInfo }) {
     console.log(dataMapping);
 
     // alternatiely fetch data on NFT from JSON metadata
-    /*     axios
+    axios
       .get(_response.tokenURI)
       .then((res) => {
+        console.log(res, 'res tokenURI')
+
+        setImgSrc(res.data?.image)
         let dataMapping = {};
-        dataMapping = res.data[0];
-        dataMapping.attributes.lastMeal = _response.lastMeal;
-        setDataFetched(dataMapping);
-        gameRenderer(null);
+    setAllInfo(res.data)
+
+        // dataMapping = res.data[0];
+        // dataMapping.attributes.lastMeal = _response.lastMeal;
+        // setDataFetched(dataMapping);
+        // gameRenderer(null);
       })
       .catch((err) => {
         console.log(err);
-      }); */
+      });
   }
 
   /*   // interact with Hastro token (NFT)
@@ -253,12 +353,40 @@ export default function Hashtro({ isServerInfo }) {
   }
  */
   async function levelData(_hostContract, _tokenId) {
+
+    // let oldLevel=allInfo.attributes?.find(item=>item.trait_type=='level')?.value
+
+    let mapList={}
+    
+    await allInfo.attributes?.forEach(item=>{
+
+    mapList[item.trait_type]=item.value
+
+    
+    })
+
+    const newLevel = mapList.level;
+    const newHP = mapList.hp;
+    const newDamage = mapList.damage;
+
+    console.log(mapList,'mapList')
+
+    const newUrl=await updateMetadataFn({
+      ...mapList,
+      level:mapList.level+1,
+    })
+
     const web3 = await Moralis.enableWeb3();
     const params = {
       hostContract: _hostContract,
-      tokenId: _tokenId,
+      tokenId:Number(_tokenId) ,
+      newUrl,
+      newLevel:mapList.level+1,
+      newHP,
+      newDamage
     };
-    const signedTransaction = await Moralis.Cloud.run("levelUp", params);
+    console.log(params,'params')
+    const signedTransaction = await Moralis.Cloud.run("updateMetaData", params);
     const fulfillTx = await web3.eth.sendSignedTransaction(
       signedTransaction.rawTransaction,
     );

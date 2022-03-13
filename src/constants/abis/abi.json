@@ -1,13 +1,4 @@
-// Moralis cloud functions:
-// * call contract to level-up token
-// * return txresponse: success/error
-// ---
-
-//const web3 = new Moralis.Web3(new Moralis.Web3.providers.HttpProvider("https://speedy-nodes-nyc.moralis.io/2f9030e63c6503c12a1e7340/polygon/mumbai"));
-const web3 = Moralis.web3ByChain("0x13881"); // Mumbai Testnet
-const char_contract_address = "0x3D42AaA8258Fa3dB93A032B5D66AfC15CE29a01e"; // Deployed character.sol contract
-const coordinatorKey = "INSERT_PRIVATE_KEY"; //<-- DO NOT SHARE
-const character_abi = [
+[
 	{
 		"inputs": [],
 		"stateMutability": "nonpayable",
@@ -284,24 +275,6 @@ const character_abi = [
 		"inputs": [
 			{
 				"internalType": "uint256",
-				"name": "_id",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "_damage",
-				"type": "uint256"
-			}
-		],
-		"name": "updateDamage",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
 				"name": "_fee",
 				"type": "uint256"
 			}
@@ -319,34 +292,18 @@ const character_abi = [
 				"type": "uint256"
 			},
 			{
+				"internalType": "uint8",
+				"name": "_level",
+				"type": "uint8"
+			},
+			{
 				"internalType": "uint256",
 				"name": "_hp",
 				"type": "uint256"
-			}
-		],
-		"name": "updateHp",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
+			},
 			{
 				"internalType": "uint256",
-				"name": "_id",
-				"type": "uint256"
-			}
-		],
-		"name": "updateLevel",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "_id",
+				"name": "_damage",
 				"type": "uint256"
 			},
 			{
@@ -737,70 +694,4 @@ const character_abi = [
 		"stateMutability": "view",
 		"type": "function"
 	}
-];
-const character = new web3.eth.Contract(character_abi, char_contract_address);
-
-Moralis.Cloud.define("updateLevel", async (request) => {
-  const hostContract = request.params.hostContract;
-  const tokenId = request.params.tokenId;
-  /*     const nonceOperator = web3.eth.getTransactionCount(
-      "0x3dEC906D72d3bc6C8900F93b2f9FaD73DCC65Ce9",
-    ); */
-  const functionCall = character.methods.updateLevel(tokenId).encodeABI();
-  transactionBody = {
-    to: char_contract_address,
-    //nonce: nonceOperator,
-    data: functionCall,
-    gas: 30000,
-    gasPrice: web3.utils.toWei("30000", "gwei"),
-  };
-  signedTransaction = await web3.eth.accounts.signTransaction(
-    transactionBody,
-    coordinatorKey,
-  );
-  return signedTransaction;
-});
-
-Moralis.Cloud.define("updateHp", async (request) => {
-  const hostContract = request.params.hostContract;
-  const tokenId = request.params.tokenId;
-  const newHP = request.params.newHP;
-  /*     const nonceOperator = web3.eth.getTransactionCount(
-      "0x3dEC906D72d3bc6C8900F93b2f9FaD73DCC65Ce9",
-    ); */
-  const functionCall = character.methods.updateHp(tokenId,newHP).encodeABI();
-  transactionBody = {
-    to: char_contract_address,
-    //nonce: nonceOperator,
-    data: functionCall,
-    gas: 30000,
-    gasPrice: web3.utils.toWei("30000", "gwei"),
-  };
-  signedTransaction = await web3.eth.accounts.signTransaction(
-    transactionBody,
-    coordinatorKey,
-  );
-  return signedTransaction;
-});
-
-Moralis.Cloud.define("updateDamage", async (request) => {
-  const hostContract = request.params.hostContract;
-  const tokenId = request.params.tokenId;
-  const newDamage = request.params.newDamage;
-  /*     const nonceOperator = web3.eth.getTransactionCount(
-      "0x3dEC906D72d3bc6C8900F93b2f9FaD73DCC65Ce9",
-    ); */
-  const functionCall = character.methods.updateDamage(tokenId,newDamage).encodeABI();
-  transactionBody = {
-    to: char_contract_address,
-    //nonce: nonceOperator,
-    data: functionCall,
-    gas: 30000,
-    gasPrice: web3.utils.toWei("30000", "gwei"),
-  };
-  signedTransaction = await web3.eth.accounts.signTransaction(
-    transactionBody,
-    coordinatorKey,
-  );
-  return signedTransaction;
-});
+]

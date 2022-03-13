@@ -28,7 +28,8 @@ import { ExternalLinkIcon } from "@chakra-ui/icons";
 //import { Moralis } from "moralis";
 import { useWeb3ExecuteFunction } from "react-moralis";
 //import { abi as objContractAbi } from "../../constants/abis/Token.json";
-import { abi as charContractAbi } from "../../constants/abis/Character.json";
+// import { abi as charContractAbi } from "../../constants/abis/Character.json";
+import  charContractAbi  from "../../constants/abis/abi.json";
 //import { useMoralis } from "react-moralis";
 const { default: axios } = require("axios");
 //const request = require("request");
@@ -123,7 +124,7 @@ export default function Uploader(_isAuthenticated) {
   const { fetch } = useWeb3ExecuteFunction();
 
   // track total circulation
-  let _tokensAvailable = 0;
+  let _tokensAvailable = 1;
 
   // simple demo contract interaction
   const tokensAvailable = async () => {
@@ -166,7 +167,7 @@ export default function Uploader(_isAuthenticated) {
     const options = {
       abi: charContractAbi,
       contractAddress: CHAR_CONTRACT,
-      functionName: "levelUp",
+      functionName: "updateLevel",
       params: {
         _charId: _id,
       },
@@ -250,20 +251,21 @@ export default function Uploader(_isAuthenticated) {
     // trigger upload from files via useState
     console.log("TOKENS IN CIRCULATION:", _tokensAvailable);
 
-    await fetchData(5);
+    // await fetchData(5);
 
-    await levelUp(5);
+    // await levelUp(5);
 
-    await fetchData(5);
+    // await fetchData(5);
 
     // level up
 
-    /*     uploadIPFS(files, {
+
+    uploadIPFS(files, {
       name: e.name,
       damage: parseInt(e.damage),
       power: parseInt(e.power),
       endurance: parseInt(e.endurance),
-    }); */
+    });
   };
 
   const messageMarkup = (
@@ -394,8 +396,8 @@ export default function Uploader(_isAuthenticated) {
       _isAuthenticated.isAuthenticated && loading
         ? true
         : _isAuthenticated.isAuthenticated
-        ? false
-        : true,
+          ? false
+          : true,
     accept: "image/jpeg, image/png",
     multiple: false,
     minSize: 0,
@@ -430,11 +432,35 @@ export default function Uploader(_isAuthenticated) {
       image: _path,
       id: _id,
       date: dateTime,
-      attributes: {
-        damage: _values.damage ? _values.damage : 0,
-        power: _values.power ? _values.power : 0,
-        endurance: _values.endurance ? _values.endurance : 0,
-      },
+      attributes:[
+        {
+          "trait_type": "damage", 
+          "value": _values.damage ? _values.damage : 5,
+          "display_type": "boost_number"
+        }, 
+         {
+          "trait_type": "hp", 
+          "value": 100,
+          "display_type": "boost_number"
+        }, 
+         {
+          "trait_type": "level", 
+          "value": 1,
+        }, 
+        {
+          "trait_type": "updateTime", 
+          "value": dateTime,
+           "display_type": "date", 
+        }
+      //  {
+      //   damage: _values.damage ? _values.damage : 0,
+      //   power: _values.power ? _values.power : 0,
+      //   endurance: _values.endurance ? _values.endurance : 0,
+      //   hp:100,
+      //   // damage:5,
+      //   level:1
+      // },
+      ]
     };
     return tempMetadata;
   };
@@ -471,11 +497,14 @@ export default function Uploader(_isAuthenticated) {
         fileDataArray[i].filePath,
         _formValues,
       );
-      metadataList.push(nftMetadata);
+      // metadataList.push(nftMetadata);
+      metadataList=nftMetadata
 
       let base64String = Buffer.from(JSON.stringify(metadataList)).toString(
         "base64",
       );
+
+      console.log(base64String,'base64String',JSON.stringify(metadataList))
 
       // event.target.result contains base64 encoded image
       // reads output folder for json files and then adds to IPFS object array
